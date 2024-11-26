@@ -423,7 +423,7 @@ class TbContactFormRecipientFilter extends Module
     {
         return [
             sprintf(
-                $this->l("Your email address is blocked from sending messages through contact form. Please send email to %s instead"),
+                $this->l('Your email address is blocked from sending messages through contact form. Please send email to %s instead'),
                 $contact->email
             )
         ];
