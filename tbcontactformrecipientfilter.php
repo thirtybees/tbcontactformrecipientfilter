@@ -174,9 +174,7 @@ class TbContactFormRecipientFilter extends Module
         if (!$create) {
             return true;
         }
-        return (
-        $this->executeSqlScript('install')
-        );
+        return ($this->executeSqlScript('install'));
     }
 
     /**
@@ -512,7 +510,7 @@ class TbContactFormRecipientFilter extends Module
      */
     protected function strEndsWith(string $haystack, string $needle): bool
     {
-        return mb_strlen($needle) === 0 || mb_substr($haystack, - mb_strlen($needle)) === $needle;
+        return mb_strlen($needle) === 0 || mb_substr($haystack, -mb_strlen($needle)) === $needle;
     }
 
     /**
