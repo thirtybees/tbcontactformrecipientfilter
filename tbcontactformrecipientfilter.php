@@ -18,7 +18,7 @@
  */
 
 /**
- * Class TbContactFormIPBlock
+ * Class TbContactFormRecipientFilter
  */
 class TbContactFormRecipientFilter extends Module
 {
