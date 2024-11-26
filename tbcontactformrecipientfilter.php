@@ -111,7 +111,19 @@ class TbContactFormRecipientFilter extends Module
         if (!$sql) {
             return false;
         }
-        $sql = str_replace(['PREFIX_', 'ENGINE_TYPE', 'CHARSET_TYPE', 'COLLATE_TYPE'], [_DB_PREFIX_, _MYSQL_ENGINE_, 'utf8mb4', 'utf8mb4_unicode_ci'], $sql);
+        $sql = str_replace([
+            'PREFIX_',
+            'ENGINE_TYPE',
+            'CHARSET_TYPE',
+            'COLLATE_TYPE',
+            'ENUM_VALUES_ROLE_TYPES',
+        ], [
+            _DB_PREFIX_,
+            _MYSQL_ENGINE_,
+            'utf8mb4',
+            'utf8mb4_unicode_ci',
+            $this->getEnumValues($this->getRuleTypes()),
+        ], $sql);
         $sql = preg_split("/;\s*[\r\n]+/", $sql);
         foreach ($sql as $statement) {
             $stmt = trim($statement);
@@ -226,7 +238,9 @@ class TbContactFormRecipientFilter extends Module
         $controller = $this->context->controller;
         if (Tools::isSubmit('addRule')) {
             $rule = Tools::getValue('rule');
+            $type = Tools::getValue('type');
             Db::getInstance()->insert('cfrf_recipient_rule', [
+                'type' => pSQL($type),
                 'rule' => pSQL($rule),
             ]);
             $controller->confirmations[] = $this->l('Filter rule has been created');
@@ -245,6 +259,13 @@ class TbContactFormRecipientFilter extends Module
      */
     public function renderAddIpAddressForm()
     {
+        $ruleTypes = [];
+        foreach ($this->getRuleTypes() as $type) {
+            $ruleTypes[] = [
+                'type' => $type,
+                'name' => $this->getRuleTypeName($type),
+            ];
+        }
         $formFields = [
             'form' => [
                 'legend' => [
@@ -252,6 +273,17 @@ class TbContactFormRecipientFilter extends Module
                     'icon' => 'icon-lock',
                 ],
                 'input' => [
+                    [
+                        'type' => 'select',
+                        'label' => $this->l('Type'),
+                        'name' => 'type',
+                        'required' => true,
+                        'options' => [
+                            'query' => $ruleTypes,
+                            'id' => 'type',
+                            'name' => 'name'
+                        ]
+                    ],
                     [
                         'type' => 'text',
                         'label' => $this->l('Rule'),
@@ -279,7 +311,8 @@ class TbContactFormRecipientFilter extends Module
         $controller = $this->context->controller;
         $helper->tpl_vars = [
             'fields_value' => [
-                'rule' => ''
+                'type' => 'contains',
+                'rule' => '',
             ],
             'languages' => $controller->getLanguages(),
             'id_language' => $this->context->language->id,
@@ -297,7 +330,7 @@ class TbContactFormRecipientFilter extends Module
     public function renderRulesList()
     {
         $sql = (new DbQuery())
-            ->select('rr.id_cfrf_recipient_rule, rr.rule')
+            ->select('rr.id_cfrf_recipient_rule, rr.type, rr.rule')
             ->select('MIN(a.ts) as first_seen')
             ->select('MAX(a.ts) as last_seen')
             ->select('SUM(CASE WHEN a.id_cfrf_recipient_rule_activity IS NULL THEN 0 ELSE 1 END) as cnt_total')
@@ -312,6 +345,11 @@ class TbContactFormRecipientFilter extends Module
         $total = count($data);
 
         $fieldsList = [
+            'type' => [
+                'title' => $this->l('Type'),
+                'callback_object' => $this,
+                'callback' => 'getRuleTypeName',
+            ],
             'rule' => [
                 'title' => $this->l('Rule'),
             ],
@@ -402,6 +440,36 @@ class TbContactFormRecipientFilter extends Module
     }
 
     /**
+     * @param string $type
+     * @return string
+     */
+    public function getRuleTypeName(string $type): string
+    {
+        switch ($type) {
+            case static::RULE_TYPE_CONTAINS:
+                return $this->l('Contains');
+            case static::RULE_TYPE_STARTS_WITH:
+                return $this->l('Starts with');
+            case static::RULE_TYPE_ENDS_WITH:
+                return $this->l('Ends with');
+            default:
+                return $type;
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function getRuleTypes(): array
+    {
+        return [
+            static::RULE_TYPE_CONTAINS,
+            static::RULE_TYPE_STARTS_WITH,
+            static::RULE_TYPE_ENDS_WITH,
+        ];
+    }
+
+    /**
      * @param string $haystack
      * @param string $needle
      *
@@ -432,6 +500,15 @@ class TbContactFormRecipientFilter extends Module
     protected function strEndsWith(string $haystack, string $needle): bool
     {
         return mb_strlen($needle) === 0 || mb_substr($haystack, - mb_strlen($needle)) === $needle;
+    }
+
+    /**
+     * @param array $values
+     * @return string
+     */
+    private function getEnumValues(array $values): string
+    {
+        return "'" . implode("', '", $values) . "'";
     }
 }
 
