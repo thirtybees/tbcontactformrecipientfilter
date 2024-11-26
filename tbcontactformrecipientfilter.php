@@ -49,7 +49,7 @@ class TbContactFormRecipientFilter extends Module
 
         parent::__construct();
         $this->displayName = $this->l('Contact Form Recipient Email Address Filter');
-        $this->description = $this->l('Contact Form Recipient Email Address Filter');
+        $this->description = $this->l('Filter emails based on recipient email address');
     }
 
     /**
