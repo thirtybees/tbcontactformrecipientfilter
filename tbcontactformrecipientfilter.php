@@ -236,16 +236,24 @@ class TbContactFormRecipientFilter extends Module
     {
         /** @var AdminController $controller */
         $controller = $this->context->controller;
+        if (Tools::isSubmit('deleteRule')) {
+            Db::getInstance()->delete('cfrf_recipient_rule', 'id_cfrf_recipient_rule = ' . Tools::getIntValue('deleteRule'));
+            $controller->confirmations[] = $this->l('Filter rule has been deleted');
+            $controller->setRedirectAfter(Context::getContext()->link->getAdminLink('AdminModules', true, ['configure' => $this->name]));
+        }
         if (Tools::isSubmit('addRule')) {
             $rule = Tools::getValue('rule');
             $type = Tools::getValue('type');
-            Db::getInstance()->insert('cfrf_recipient_rule', [
-                'type' => pSQL($type),
-                'rule' => pSQL($rule),
-            ]);
-            $controller->confirmations[] = $this->l('Filter rule has been created');
-            $controller->setRedirectAfter(Context::getContext()->link->getAdminLink('AdminModules', true, ['configure' => $this->name]));
+            if ($rule && $type) {
+                Db::getInstance()->insert('cfrf_recipient_rule', [
+                    'type' => pSQL($type),
+                    'rule' => pSQL($rule),
+                ]);
+                $controller->confirmations[] = $this->l('Filter rule has been created');
+                $controller->setRedirectAfter(Context::getContext()->link->getAdminLink('AdminModules', true, ['configure' => $this->name]));
+            }
         }
+
         return (
             $this->renderAddIpAddressForm() .
             $this->renderRulesList()
@@ -367,6 +375,11 @@ class TbContactFormRecipientFilter extends Module
             'cnt_last_day' => [
                 'title' => $this->l('Requests (last day)'),
             ],
+            'id_cfrf_recipient_rule' => [
+                'title' => $this->l('Actions'),
+                'callback_object' => $this,
+                'callback' => 'renderDeleteAction'
+            ]
         ];
 
         $helper = new HelperList();
@@ -379,7 +392,7 @@ class TbContactFormRecipientFilter extends Module
         $helper->listTotal = $total;
         $helper->identifier = 'id_cfrf_recipient_rule';
         $helper->title = $this->l('Filter Rules');
-        $helper->table = 'cfipb_ip_address';
+        $helper->table = 'cfrf_recipient_rule';
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
 
@@ -509,6 +522,24 @@ class TbContactFormRecipientFilter extends Module
     private function getEnumValues(array $values): string
     {
         return "'" . implode("', '", $values) . "'";
+    }
+
+    /**
+     * @param int $id
+     *
+     * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
+    public function renderDeleteAction($id)
+    {
+        $link = Context::getContext()->link->getAdminLink('AdminModules', true, [
+            'deleteRule' => $id,
+            'configure' => $this->name,
+        ]);
+        $label = $this->l('Delete');
+        return '<a href="' . $link . '" ><i class="icon-delete"></i> ' . $label . '</a>';
     }
 }
 
